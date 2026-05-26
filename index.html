@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>자금집행 관리</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif; background: #f4f6fb; color: #1a1a2e; min-height: 100vh; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%); padding: 28px 32px 0; color: #fff; }
+  .header-inner { max-width: 900px; margin: 0 auto; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .header-label { font-size: 11px; letter-spacing: 3px; color: #7ecdf8; font-weight: 600; margin-bottom: 4px; }
+  .header-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  .header-sub { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 13px; color: #a0b3c8; }
+  .btn-add { background: #e94560; color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(233,69,96,.4); margin-top: 4px; white-space: nowrap; }
+  .tabs { display: flex; gap: 4px; margin-top: 18px; }
+  .tab { padding: 10px 22px; border: none; border-radius: 8px 8px 0 0; font-weight: 700; font-size: 13px; cursor: pointer; transition: all .2s; }
+  .tab.active { background: #f4f6fb; color: #1a1a2e; }
+  .tab:not(.active) { background: transparent; color: #a0b3c8; }
+
+  /* Main */
+  .main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+
+  /* Cards */
+  .cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 22px; }
+  .card { background: #fff; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+  .card-icon { font-size: 20px; margin-bottom: 4px; }
+  .card-label { font-size: 11px; color: #888; font-weight: 600; letter-spacing: 1px; }
+  .card-value { font-size: 22px; font-weight: 800; margin-top: 2px; }
+  .card-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  /* Filter bar */
+  .filter-bar { background: #fff; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; box-shadow: 0 1px 8px rgba(0,0,0,.05); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .filter-label { font-size: 12px; font-weight: 700; color: #888; }
+  .filter-count { margin-left: auto; font-size: 12px; color: #999; }
+  select { padding: 7px 10px; border-radius: 8px; border: 1.5px solid #e0e0e0; font-size: 13px; background: #fafafa; color: #333; cursor: pointer; }
+
+  /* List */
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .item { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.05); display: flex; align-items: center; gap: 14px; }
+  .item-left { flex: 1; min-width: 0; }
+  .item-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .item-title { font-size: 15px; font-weight: 700; }
+  .badge { font-size: 11px; border-radius: 20px; padding: 1px 9px; font-weight: 600; }
+  .item-meta { font-size: 12px; color: #999; margin-top: 4px; }
+  .item-right { text-align: right; min-width: 110px; }
+  .item-amount { font-size: 17px; font-weight: 800; }
+  .item-actions { display: flex; gap: 4px; margin-top: 6px; justify-content: flex-end; }
+  .btn-icon { background: transparent; border: none; cursor: pointer; font-size: 15px; padding: 3px 5px; border-radius: 6px; }
+  .empty { text-align: center; padding: 40px; color: #bbb; font-size: 14px; }
+
+  /* Summary */
+  .summary-card { background: #fff; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 14px; }
+  .summary-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .summary-cat { font-size: 16px; font-weight: 800; }
+  .summary-rate { margin-left: 10px; font-size: 12px; color: #aaa; }
+  .summary-nums { text-align: right; font-size: 13px; color: #888; }
+  .progress-bg { height: 10px; background: #eee; border-radius: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 10px; transition: width .6s; }
+
+  /* Save tag */
+  .save-tag { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; }
+
+  /* Toast */
+  #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 999; padding: 10px 22px; border-radius: 30px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,.2); white-space: nowrap; display: none; color: #fff; }
+
+  /* Modal overlay */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+  .modal { background: #fff; border-radius: 18px; padding: 30px 28px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 22px; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; font-weight: 700; color: #666; margin-bottom: 5px; display: block; }
+  .form-input { width: 100%; padding: 9px 12px; border-radius: 9px; border: 1.5px solid #e0e0e0; font-size: 14px; background: #fafafa; color: #1a1a2e; outline: none; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 8px; }
+  .btn-cancel { flex: 1; padding: 11px; border: 1.5px solid #ddd; border-radius: 9px; background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; color: #666; }
+  .btn-save { flex: 2; padding: 11px; border: none; border-radius: 9px; background: #1a1a2e; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  /* Delete confirm */
+  .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 200; }
+  .confirm-box { background: #fff; border-radius: 14px; padding: 26px 28px; max-width: 320px; width: 90%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.2); }
+  .confirm-icon { font-size: 32px; margin-bottom: 10px; }
+  .confirm-title { font-weight: 700; margin-bottom: 6px; }
+  .confirm-sub { font-size: 13px; color: #999; margin-bottom: 20px; }
+  .confirm-btns { display: flex; gap: 10px; }
+  .btn-del { flex: 1; padding: 10px; border: none; border-radius: 8px; background: #dc3545; color: #fff; cursor: pointer; font-weight: 700; }
+  .btn-no  { flex: 1; padding: 10px; border: 1.5px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-weight: 600; color: #555; }
+
+  /* Loading */
+  #loading { position: fixed; inset: 0; background: #f4f6fb; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; z-index: 500; }
+  .loading-icon { font-size: 36px; }
+  .loading-text { font-size: 15px; color: #666; }
+
+  @media (max-width: 600px) {
+    .cards { grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .card { padding: 12px; }
+    .card-value { font-size: 16px; }
+    .header { padding: 20px 16px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="loading-icon">📂</div>
+  <div class="loading-text">데이터를 불러오는 중...</div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div>
+        <div class="header-label">FUND MANAGEMENT</div>
+        <div class="header-title">자금집행 관리</div>
+        <div class="header-sub">
+          <span>7인 사업장 · 집행계획 &amp; 현황</span>
+          <span id="save-tag" class="save-tag"></span>
+        </div>
+      </div>
+      <button class="btn-add" onclick="openAdd()">+ 항목 추가</button>
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="tab-list" onclick="switchTab('list')">목록 관리</button>
+      <button class="tab" id="tab-summary" onclick="switchTab('summary')">카테고리 요약</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <!-- Summary cards -->
+  <div class="cards">
+    <div class="card" style="border-left:4px solid #0f3460">
+      <div class="card-icon">📋</div>
+      <div class="card-label">총 계획금액</div>
+      <div class="card-value" id="c-plan" style="color:#0f3460">-</div>
+      <div class="card-sub" id="c-plan-sub">-</div>
+    </div>
+    <div class="card" style="border-left:4px solid #198754">
+      <div class="card-icon">✅</div>
+      <div class="card-label">집행 완료</div>
+      <div class="card-value" id="c-exec" style="color:#198754">-</div>
+      <div class="card-sub" id="c-exec-sub">-</div>
+    </div>
+    <div class="card" style="border-left:4px solid #0d6efd" id="c-rate-card">
+      <div class="card-icon">📊</div>
+      <div class="card-label">집행률</div>
+      <div class="card-value" id="c-rate" style="color:#0d6efd">-</div>
+      <div class="card-sub" id="c-rate-sub">-</div>
+    </div>
+  </div>
+
+  <!-- LIST TAB -->
+  <div id="panel-list">
+    <div class="filter-bar">
+      <span class="filter-label">필터</span>
+      <select id="f-cat" onchange="render()">
+        <option>전체</option>
+        <option>급여/인건비</option>
+        <option>임대료/공과금</option>
+        <option>재료비/매입</option>
+        <option>기타 운영비</option>
+      </select>
+      <select id="f-status" onchange="render()">
+        <option>전체</option>
+        <option value="planned">예정</option>
+        <option value="approved">승인</option>
+        <option value="executed">집행완료</option>
+        <option value="cancelled">취소</option>
+      </select>
+      <select id="f-month" onchange="render()">
+        <option>전체</option>
+        <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+        <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+        <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+        <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+      </select>
+      <span class="filter-count" id="f-count"></span>
+    </div>
+    <div class="list" id="list-container"></div>
+  </div>
+
+  <!-- SUMMARY TAB -->
+  <div id="panel-summary" style="display:none">
+    <div id="summary-container"></div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modal" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">새 항목 추가</div>
+    <div class="form-group">
+      <label class="form-label">카테고리</label>
+      <select class="form-input" id="f-category">
+        <option>급여/인건비</option><option>임대료/공과금</option>
+        <option>재료비/매입</option><option>기타 운영비</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">항목명 *</label>
+      <input class="form-input" id="f-title" type="text" placeholder="예) 7월 급여" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">금액 (원) *</label>
+      <input class="form-input" id="f-amount" type="number" placeholder="숫자만 입력" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">예정일</label>
+      <input class="form-input" id="f-due-date" type="date" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">상태</label>
+      <select class="form-input" id="f-status-form">
+        <option value="planned">예정</option>
+        <option value="approved">승인</option>
+        <option value="executed">집행완료</option>
+        <option value="cancelled">취소</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">메모</label>
+      <input class="form-input" id="f-memo" type="text" placeholder="선택사항" />
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-save" id="btn-save-modal" onclick="saveItem()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm -->
+<div class="confirm-overlay" id="confirm" style="display:none">
+  <div class="confirm-box">
+    <div class="confirm-icon">⚠️</div>
+    <div class="confirm-title">항목을 삭제할까요?</div>
+    <div class="confirm-sub">삭제 후 복구할 수 없습니다.</div>
+    <div class="confirm-btns">
+      <button class="btn-no" onclick="closeConfirm()">취소</button>
+      <button class="btn-del" onclick="confirmDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Supabase 설정 ──────────────────────────────────────────
+const SUPABASE_URL = "https://ozzynvwphqhhvcnwexvw.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96enludndwaHFoaHZjbndleHZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3Nzg5NTEsImV4cCI6MjA5NTM1NDk1MX0.j1VXk2hb9VJKLmaasDi8l4v17Wx9MkxvCVXk-aVmg_U";
+const TABLE = "budget_items";
+
+const HEADERS = {
+  "Content-Type": "application/json",
+  "apikey": SUPABASE_KEY,
+  "Authorization": "Bearer " + SUPABASE_KEY,
+  "Prefer": "return=representation"
+};
+
+async function dbFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: HEADERS, ...options });
+  if (!res.ok) { const e = await res.text(); throw new Error(e); }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function loadAll()         { return await dbFetch(`${TABLE}?order=id.asc`); }
+async function insertItem(data)  { return await dbFetch(TABLE, { method: "POST", body: JSON.stringify(data) }); }
+async function updateItem(id, data) { return await dbFetch(`${TABLE}?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(data) }); }
+async function deleteItemDB(id)  { return await dbFetch(`${TABLE}?id=eq.${id}`, { method: "DELETE" }); }
+
+// ── 상태 ──────────────────────────────────────────────────
+const CAT_COLORS = {
+  "급여/인건비":   { accent: "#2980b9", badge: "#d0eaf8" },
+  "임대료/공과금": { accent: "#d4a017", badge: "#f9efc0" },
+  "재료비/매입":  { accent: "#27ae60", badge: "#c8f0d8" },
+  "기타 운영비":  { accent: "#8e44ad", badge: "#f2d9f7" },
+};
+const STATUS_CFG = {
+  planned:   { label: "예정",    color: "#6c757d", bg: "#f0f0f0" },
+  approved:  { label: "승인",    color: "#0d6efd", bg: "#dbeafe" },
+  executed:  { label: "집행완료", color: "#198754", bg: "#d1fae5" },
+  cancelled: { label: "취소",    color: "#dc3545", bg: "#fde8e8" },
+};
+const CATEGORIES = ["급여/인건비","임대료/공과금","재료비/매입","기타 운영비"];
+
+let items = [];
+let editId = null;
+let deleteId = null;
+let activeTab = "list";
+
+function fmt(n) { return Number(n||0).toLocaleString("ko-KR") + "원"; }
+function today() { return new Date().toISOString().split("T")[0]; }
+
+function showToast(msg, warn = false) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.background = warn ? "#1a1a2e" : "#198754";
+  t.style.display = "block";
+  setTimeout(() => t.style.display = "none", 2500);
+}
+
+function setSaveTag(msg, color, bg) {
+  const el = document.getElementById("save-tag");
+  el.textContent = msg;
+  el.style.color = color;
+  el.style.background = bg;
+}
+
+// ── 렌더링 ────────────────────────────────────────────────
+function getFiltered() {
+  const cat    = document.getElementById("f-cat").value;
+  const status = document.getElementById("f-status").value;
+  const month  = document.getElementById("f-month").value;
+  return items.filter(i => {
+    const catOk = cat === "전체" || i.category === cat;
+    const stOk  = status === "전체" || i.status === status;
+    const mo    = i.due_date ? parseInt(i.due_date.split("-")[1]) : 0;
+    const moOk  = month === "전체" || mo === parseInt(month);
+    return catOk && stOk && moOk;
+  });
+}
+
+function render() {
+  const filtered   = getFiltered();
+  const totalPlan  = filtered.reduce((s,i) => s + Number(i.amount), 0);
+  const totalExec  = filtered.filter(i => i.status === "executed").reduce((s,i) => s + Number(i.amount), 0);
+  const execRate   = totalPlan ? Math.round((totalExec/totalPlan)*100) : 0;
+
+  document.getElementById("c-plan").textContent     = fmt(totalPlan);
+  document.getElementById("c-plan-sub").textContent = filtered.length + "건";
+  document.getElementById("c-exec").textContent     = fmt(totalExec);
+  document.getElementById("c-exec-sub").textContent = filtered.filter(i=>i.status==="executed").length + "건";
+  document.getElementById("c-rate").textContent     = execRate + "%";
+  document.getElementById("c-rate-sub").textContent = "잔액 " + fmt(totalPlan - totalExec);
+  document.getElementById("c-rate").style.color     = execRate >= 70 ? "#e94560" : "#0d6efd";
+  document.getElementById("c-rate-card").style.borderLeftColor = execRate >= 70 ? "#e94560" : "#0d6efd";
+  document.getElementById("f-count").textContent    = filtered.length + "건";
+
+  // List
+  const lc = document.getElementById("list-container");
+  if (filtered.length === 0) {
+    lc.innerHTML = '<div class="empty">항목이 없습니다.</div>';
+  } else {
+    lc.innerHTML = filtered.map(item => {
+      const cc  = CAT_COLORS[item.category] || { accent: "#888", badge: "#eee" };
+      const sc  = STATUS_CFG[item.status]   || STATUS_CFG.planned;
+      const op  = item.status === "cancelled" ? "0.55" : "1";
+      return `
+      <div class="item" style="border-left:4px solid ${cc.accent};opacity:${op}">
+        <div class="item-left">
+          <div class="item-name-row">
+            <span class="item-title">${item.title}</span>
+            <span class="badge" style="background:${cc.badge};color:${cc.accent}">${item.category}</span>
+            <span class="badge" style="background:${sc.bg};color:${sc.color}">${sc.label}</span>
+          </div>
+          <div class="item-meta">
+            📅 ${item.due_date || "-"}
+            ${item.memo ? `<span style="margin-left:10px;color:#bbb">💬 ${item.memo}</span>` : ""}
+          </div>
+        </div>
+        <div class="item-right">
+          <div class="item-amount" style="color:${cc.accent}">${fmt(item.amount)}</div>
+          <div class="item-actions">
+            <select style="padding:2px 6px;border-radius:8px;border:1.5px solid #e0e0e0;font-size:11px;background:#fafafa;cursor:pointer"
+              onchange="quickStatus(${item.id}, this.value)">
+              ${Object.entries(STATUS_CFG).map(([k,v]) =>
+                `<option value="${k}" ${item.status===k?"selected":""}>${v.label}</option>`
+              ).join("")}
+            </select>
+            <button class="btn-icon" onclick="openEdit(${item.id})">✏️</button>
+            <button class="btn-icon" onclick="openConfirm(${item.id})">🗑️</button>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // Summary
+  const sc = document.getElementById("summary-container");
+  sc.innerHTML = CATEGORIES.map(cat => {
+    const its  = items.filter(i => i.category === cat);
+    const plan = its.reduce((s,i) => s + Number(i.amount), 0);
+    const exec = its.filter(i => i.status === "executed").reduce((s,i) => s + Number(i.amount), 0);
+    const rate = plan ? Math.round((exec/plan)*100) : 0;
+    const cc   = CAT_COLORS[cat];
+    return `
+    <div class="summary-card">
+      <div class="summary-top">
+        <div>
+          <span class="summary-cat" style="color:${cc.accent}">${cat}</span>
+          <span class="summary-rate">집행률 ${rate}%</span>
+        </div>
+        <div class="summary-nums">
+          계획 <b style="color:#333">${fmt(plan)}</b><br>
+          집행 <b style="color:${cc.accent}">${fmt(exec)}</b>
+        </div>
+      </div>
+      <div class="progress-bg">
+        <div class="progress-fill" style="width:${Math.min(rate,100)}%;background:linear-gradient(90deg,${cc.accent},${cc.accent}88)"></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── 탭 전환 ──────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById("panel-list").style.display    = tab === "list"    ? "" : "none";
+  document.getElementById("panel-summary").style.display = tab === "summary" ? "" : "none";
+  document.getElementById("tab-list").className    = "tab" + (tab === "list"    ? " active" : "");
+  document.getElementById("tab-summary").className = "tab" + (tab === "summary" ? " active" : "");
+}
+
+// ── 모달 ─────────────────────────────────────────────────
+function openAdd() {
+  editId = null;
+  document.getElementById("modal-title").textContent = "새 항목 추가";
+  document.getElementById("btn-save-modal").textContent = "추가";
+  document.getElementById("f-category").value   = "급여/인건비";
+  document.getElementById("f-title").value      = "";
+  document.getElementById("f-amount").value     = "";
+  document.getElementById("f-due-date").value   = today();
+  document.getElementById("f-status-form").value = "planned";
+  document.getElementById("f-memo").value       = "";
+  document.getElementById("modal").style.display = "flex";
+}
+
+function openEdit(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  editId = id;
+  document.getElementById("modal-title").textContent = "항목 수정";
+  document.getElementById("btn-save-modal").textContent = "수정 완료";
+  document.getElementById("f-category").value    = item.category;
+  document.getElementById("f-title").value       = item.title;
+  document.getElementById("f-amount").value      = item.amount;
+  document.getElementById("f-due-date").value    = item.due_date || "";
+  document.getElementById("f-status-form").value = item.status;
+  document.getElementById("f-memo").value        = item.memo || "";
+  document.getElementById("modal").style.display = "flex";
+}
+
+function closeModal() { document.getElementById("modal").style.display = "none"; }
+
+async function saveItem() {
+  const title  = document.getElementById("f-title").value.trim();
+  const amount = document.getElementById("f-amount").value;
+  if (!title || !amount) { alert("항목명과 금액은 필수입니다."); return; }
+
+  const data = {
+    category: document.getElementById("f-category").value,
+    title,
+    amount: Number(amount),
+    due_date: document.getElementById("f-due-date").value,
+    status:   document.getElementById("f-status-form").value,
+    memo:     document.getElementById("f-memo").value,
+  };
+
+  setSaveTag("⏳ 저장 중...", "#0d6efd", "#dbeafe");
+  try {
+    if (editId) {
+      const res = await updateItem(editId, data);
+      const updated = Array.isArray(res) ? res[0] : res;
+      items = items.map(i => i.id === editId ? { ...i, ...updated } : i);
+      showToast("수정되었습니다.");
+    } else {
+      const res = await insertItem(data);
+      const created = Array.isArray(res) ? res[0] : res;
+      items.push(created);
+      showToast("항목이 추가되었습니다.");
+    }
+    setSaveTag("✅ 저장됨", "#198754", "#d1fae5");
+    setTimeout(() => setSaveTag("", "", ""), 3000);
+    closeModal();
+    render();
+  } catch(e) {
+    setSaveTag("❌ 저장 실패", "#dc3545", "#fde8e8");
+    alert("저장 실패: " + e.message);
+  }
+}
+
+async function quickStatus(id, status) {
+  setSaveTag("⏳ 저장 중...", "#0d6efd", "#dbeafe");
+  try {
+    await updateItem(id, { status });
+    items = items.map(i => i.id === id ? { ...i, status } : i);
+    setSaveTag("✅ 저장됨", "#198754", "#d1fae5");
+    setTimeout(() => setSaveTag("", "", ""), 2000);
+    render();
+  } catch(e) {
+    setSaveTag("❌ 실패", "#dc3545", "#fde8e8");
+  }
+}
+
+// ── 삭제 ─────────────────────────────────────────────────
+function openConfirm(id) {
+  deleteId = id;
+  document.getElementById("confirm").style.display = "flex";
+}
+function closeConfirm() {
+  deleteId = null;
+  document.getElementById("confirm").style.display = "none";
+}
+async function confirmDelete() {
+  if (!deleteId) return;
+  setSaveTag("⏳ 삭제 중...", "#0d6efd", "#dbeafe");
+  try {
+    await deleteItemDB(deleteId);
+    items = items.filter(i => i.id !== deleteId);
+    showToast("삭제되었습니다.", true);
+    setSaveTag("✅ 저장됨", "#198754", "#d1fae5");
+    setTimeout(() => setSaveTag("", "", ""), 2000);
+    closeConfirm();
+    render();
+  } catch(e) {
+    setSaveTag("❌ 실패", "#dc3545", "#fde8e8");
+    alert("삭제 실패: " + e.message);
+  }
+}
+
+// ── 초기 로딩 ────────────────────────────────────────────
+(async () => {
+  try {
+    items = await loadAll();
+    render();
+  } catch(e) {
+    document.getElementById("loading").innerHTML =
+      `<div style="text-align:center;color:#dc3545;padding:40px">
+        <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+        <div style="font-weight:700;margin-bottom:8px">연결 실패</div>
+        <div style="font-size:13px;color:#666">${e.message}</div>
+       </div>`;
+    return;
+  }
+  document.getElementById("loading").style.display = "none";
+})();
+</script>
+</body>
+</html>
